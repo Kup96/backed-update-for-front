@@ -1,0 +1,13 @@
+#
+[Unit]
+Description=boiler_api
+After=network.target
+
+[Service]
+ExecStart=npm start
+ExecReload=npm start
+WorkingDirectory=/opt/boiler_api
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
