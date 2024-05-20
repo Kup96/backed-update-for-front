@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
-const User = require('../models/UserSchema');
+import UserSchema from '../models/UserSchema.js';
 
 const DB_CONN = process.env.DB_CONN;
 
@@ -9,6 +9,7 @@ mongoose.connect(DB_CONN, {
     useUnifiedTopology: true,
     useNewUrlParser: true,
 });
+const User = UserSchema;
 
 class DBMethods {
     constructor (model) {
@@ -101,7 +102,4 @@ class DBMethods {
 
 const userService = new DBMethods(User);
 
-module.exports = {
-    userService,
-
-}
+export { DBMethods };
