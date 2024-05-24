@@ -1,23 +1,20 @@
-const express = require('express');
-const User = require('../models/UserSchema');
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
+import axios from 'axios';
+import jwt from 'jsonwebtoken';
+import User from '../models/UserSchema.js';
 
-
-const SECRET = process.env.DB_SECRET;
-
+const SECRET = process.env.JWT_SECRET;
+const brashpayUrl = process.env.BRASHPAY_URL;
 const BRASHPAY_API_KEY = process.env.BRASHPAY_API_KEY;
 const BRASHPAY_API_SECRET = process.env.BRASHPAY_API_SECRET;
 
-
-
-async function handleTransactionAndBalance(requestData,req,res) {
-    const { headers } = req;
-    const authorization = headers.authorization || null;
+export async function handleTransactionAndBalance(requestData, req, res) {
+    
+    const token = req.header('Authorization');
+    if (!token) return res.status(401).json({ error: 'You are Unauthorized' });
 
     try {
-        const response = await axios.post(
-            'https://api.brashpay.com/v1/transactions/',    
+        const response = await axios.post(  
+            `${brashpayUrl}/transactions/`,    
             requestData,
             {
                 auth: {
@@ -30,13 +27,12 @@ async function handleTransactionAndBalance(requestData,req,res) {
                 }
             }
         );
-          console.log(response.data)
+        console.log(response.data);
 
-          if (response && response.data) {
+        if (response && response.data) {
             const { status, links } = response.data;
             switch (status) {
-
-                case '  ':
+                case 'Declined':
                     res.status(500).json({ error: 'Payment was declined, try again' });
                     break;
                 case 'Captured':
@@ -45,8 +41,8 @@ async function handleTransactionAndBalance(requestData,req,res) {
                         throw new Error('Transaction amount must be 10 or more');
                     }
                     const creditsToAdd = Math.floor(amountValue * 10);
-                    const decoded = jwt.verify(authorization.replace('Bearer ', ''), SECRET);
-                    const userId = decoded.id;
+                    const decoded = jwt.verify(token, SECRET);
+                    const userId = decoded.userId;
                     const user = await User.findById(userId);
                     if (!user) {
                         throw new Error('User not found');
@@ -57,20 +53,18 @@ async function handleTransactionAndBalance(requestData,req,res) {
                     user.balance += creditsToAdd;
                     await user.save();
                     return { success: true, message: 'Transaction successful' };
-                   
                 case 'Pending':
                     const redirectUrl = response.data.links[0].href;
                     const transactionId = response.data.id;
-                    const decodedP = jwt.verify(authorization.replace('Bearer ', ''), SECRET);
-                    const userIdS = decodedP.id;
+                    const decodedP = jwt.verify(token, SECRET);
+                    const userIdS = decodedP.userId;
                     const userP = await User.findById(userIdS);
-                    userP.TransactionIdPeding.push(transactionId);
-
+                    console.log(userP)
+                    userP.TransactionIdPeding = transactionId;
                     await userP.save(); 
-                    console.log(redirectUrl)
-                        res.status(200).json({ redirectUrl,transactionId });
+                    console.log(redirectUrl);
+                    res.status(200).json({ redirectUrl, transactionId });
                     break;
-
                 default:
                     throw new Error(`Unhandled transaction status: ${status}`);
             }
@@ -83,20 +77,18 @@ async function handleTransactionAndBalance(requestData,req,res) {
     }
 }
 
-async function checkPaymentStatus(req,res) {
-   
-    const { headers } = req;
-    const authorization = headers.authorization || null;
+export async function checkPaymentStatus(req, res) {
+
+    const token = req.header('Authorization');
+
     try {
-        const decoded = jwt.verify(authorization.replace('Bearer ', ''), SECRET);
-        const userId = decoded.id;
+        const decoded = jwt.verify(token, SECRET);
+        const userId = decoded.userId;
         const user = await User.findById(userId);
-        const transactionId = user.TransactionIdPeding
-
-
+        const transactionId = user.TransactionIdPeding;
 
         const response = await axios.get(
-            `https://api.brashpay.com/v1/transactions/${transactionId}`,
+            `${brashpayUrl}/transactions/${transactionId}`,
             {
                 auth: {
                     username: BRASHPAY_API_KEY,
@@ -110,49 +102,29 @@ async function checkPaymentStatus(req,res) {
         );        
         
         const status = response.data.status;
-      
         
-        if(!transactionId){
+        if (!transactionId) {
             return res.status(201).json({ success: true, message: 'No id' });
         }
-
-      
+        
         if (status === 'Captured') {
-            const user = await User.findById(userId);
-            if (!user) {
-                throw new Error('User not found');
-            }
             const amountValue = parseFloat(response.data.amount);
- 
             if (isNaN(amountValue) || amountValue < 10) {
                 throw new Error('Transaction amount must be 10 or more');
             }
 
             const creditsToAdd = Math.floor(amountValue * 10);
-            if (!user) {
-                throw new Error('User not found');
-            }
             if (!user.balance) {
                 user.balance = 0; 
             }
             user.TransactionIdPeding = '';
             user.balance += creditsToAdd;
             await user.save();
-
             return res.status(200).redirect(`${process.env.FRONTEND_URL}/profile`);
-
         } else if (status === 'Declined') {
-            const user = await User.findById(userId);
-            const transactionId = user.TransactionIdPeding
-            if (!user) {
-                throw new Error('User not found');
-            }
-
             user.TransactionIdPeding = '';
             await user.save();
-
             return res.status(200).redirect(`${process.env.FRONTEND_URL}/`);
-
         } else {
             return res.status(200).redirect(`${process.env.FRONTEND_URL}/`);
         }
@@ -161,8 +133,3 @@ async function checkPaymentStatus(req,res) {
         throw new Error('Failed to check payment status');
     }
 }
-
-module.exports = {
-    handleTransactionAndBalance,
-    checkPaymentStatus
-};

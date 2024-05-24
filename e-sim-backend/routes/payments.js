@@ -1,13 +1,11 @@
-const express = require('express');
+import express from 'express';
+import bodyParser from 'body-parser';
+import { handleTransactionAndBalance, checkPaymentStatus } from "../controller/payments.controller.js";
+
+
 const router = express.Router();
-const bodyParser = require('body-parser');
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
-const User = require('../models/UserSchema');
-const {handleTransactionAndBalance, checkPaymentStatus} = require("../controller/payments.controller")
 
 router.use(bodyParser.json());
-
 
 router.post('/create-transaction', async (req, res) => {
     try {
@@ -21,4 +19,4 @@ router.post('/create-transaction', async (req, res) => {
 });
 router.get('/check-payments',checkPaymentStatus)
 
-module.exports = router;
+export default router

@@ -12,6 +12,6 @@ router.use(express.json());
 router.get('/user', verifyToken, getUser)
 
 router.post('/register', register)
-router.post('/login',login);
+router.post('/login', login);
 
 export default router
