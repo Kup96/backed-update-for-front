@@ -32,7 +32,7 @@ app.use(cors({
 // app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/auth', authRouter);
 // app.use('/api', api);
-app.use("/esim",verifyToken, esimRouter)
+app.use("/esim", esimRouter)
 app.use('/payments', paymentsRouter);
 // app.use('/user', userControl )
 app.use(bodyParser.urlencoded({ extended: true }));
