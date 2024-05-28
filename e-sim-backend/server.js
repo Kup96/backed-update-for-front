@@ -55,7 +55,7 @@ const connect = async () => {
       console.error('Error connecting to MongoDB:', error);
     }
   };
-  
+
 
 app.listen(port, () => {
     connect();

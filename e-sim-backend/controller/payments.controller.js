@@ -8,13 +8,15 @@ const BRASHPAY_API_KEY = process.env.BRASHPAY_API_KEY;
 const BRASHPAY_API_SECRET = process.env.BRASHPAY_API_SECRET;
 
 export async function handleTransactionAndBalance(requestData, req, res) {
-    
-    const token = req.header('Authorization');
+
+    const authHeader = req.header('Authorization');
+    const token = authHeader.split(' ')[1];
+
     if (!token) return res.status(401).json({ error: 'You are Unauthorized' });
 
     try {
-        const response = await axios.post(  
-            `${brashpayUrl}/transactions/`,    
+        const response = await axios.post(
+            `${brashpayUrl}/transactions/`,
             requestData,
             {
                 auth: {
@@ -48,7 +50,7 @@ export async function handleTransactionAndBalance(requestData, req, res) {
                         throw new Error('User not found');
                     }
                     if (!user.balance) {
-                        user.balance = 0; 
+                        user.balance = 0;
                     }
                     user.balance += creditsToAdd;
                     await user.save();
@@ -61,7 +63,7 @@ export async function handleTransactionAndBalance(requestData, req, res) {
                     const userP = await User.findById(userIdS);
                     console.log(userP)
                     userP.TransactionIdPeding = transactionId;
-                    await userP.save(); 
+                    await userP.save();
                     console.log(redirectUrl);
                     res.status(200).json({ redirectUrl, transactionId });
                     break;
@@ -79,7 +81,8 @@ export async function handleTransactionAndBalance(requestData, req, res) {
 
 export async function checkPaymentStatus(req, res) {
 
-    const token = req.header('Authorization');
+    const authHeader = req.header('Authorization');
+    const token = authHeader.split(' ')[1];
 
     try {
         const decoded = jwt.verify(token, SECRET);
@@ -99,14 +102,14 @@ export async function checkPaymentStatus(req, res) {
                     'X-Request-Id': '828fcf2c-cca0-45e5-b646-599fe19b2314'
                 }
             }
-        );        
-        
+        );
+
         const status = response.data.status;
-        
+
         if (!transactionId) {
             return res.status(201).json({ success: true, message: 'No id' });
         }
-        
+
         if (status === 'Captured') {
             const amountValue = parseFloat(response.data.amount);
             if (isNaN(amountValue) || amountValue < 10) {
@@ -115,7 +118,7 @@ export async function checkPaymentStatus(req, res) {
 
             const creditsToAdd = Math.floor(amountValue * 10);
             if (!user.balance) {
-                user.balance = 0; 
+                user.balance = 0;
             }
             user.TransactionIdPeding = '';
             user.balance += creditsToAdd;

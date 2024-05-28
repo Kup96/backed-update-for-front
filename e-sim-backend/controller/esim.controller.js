@@ -38,23 +38,23 @@ export const getOperators = async (req, res, next) => {
 export const getPlans = async (req, res, next) => {
 
     try {
-        const response = await newRequestService.get("/plans")    
+        const response = await newRequestService.get("/plans")
         let getPlans = response.data;
         const newRetailPrice = response.data.retailPrice
         console.log(newRetailPrice)
         getPlans.forEach(operator => {
             if (operator.retailPrice) {
                 const retailPrice = parseFloat(operator.retailPrice);
-                operator.retailPrice = (retailPrice * 1.40 * 10).toFixed(2);  
+                operator.retailPrice = (retailPrice * 1.40 * 10).toFixed(2);
                 operator.oldRetailPrice = retailPrice.toFixed(2);
 
             }
         });
 
         res.json(getPlans);
-    
-    
-    
+
+
+
     }
 
 
@@ -72,7 +72,7 @@ export const getPlanBySlug = async (req, res, next) => {
     const {slug} = req.params;
     try {
         const response = await newRequestService.get(`/plan/${slug}`)
-      
+
         let getPlan = response.data;
 
         if (getPlan.retailPrice) {
@@ -82,7 +82,7 @@ export const getPlanBySlug = async (req, res, next) => {
             getPlan.oldRetailPrice = retailPrice.toFixed(2);
             getPlan.retailPrice = newRetailPrice;
         }
-        
+
 
         res.json(getPlan);
 
@@ -187,7 +187,8 @@ export const getPlansInRegion = async (req, res, next) => {
 }
 
 export const buyPlan = async (req, res, next) => {
-    const token = req.header('Authorization');
+    const authHeader = req.header('Authorization');
+    const token = authHeader.split(' ')[1];
     const { planSlug } = req.body;
 
     try {
@@ -262,6 +263,7 @@ export const getAllRegions = async (req, res, next) => {
     }
 
     catch(err) {
+        console.log(err)
         console.error(err.response.data)
         res.status(500).json({
             error:"Error when fetching regions"

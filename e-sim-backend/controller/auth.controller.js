@@ -24,42 +24,43 @@ export const register = async (req,res) => {
         }
 }
 
-export const login = async (req,res,next) => {
+export const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
-       
+        const lowerCaseEmail = email.toLowerCase();
+        const user = await User.findOne({ email: lowerCaseEmail });
+
         if (!user) {
-        return res.status(401).json({ error: 'Authentication failed' });
+            return res.status(401).json({ error: 'Authentication failed' });
         }
-       
+
         const passwordMatch = await bcrypt.compare(password, user.password);
-       
+
         if (!passwordMatch) {
-        return res.status(401).json({ error: 'Password is wrong' });
+            return res.status(401).json({ error: 'Password is wrong' });
         }
-       
-        const token = jwt.sign({ userId: user._id, email : user.email }, process.env.JWT_SECRET, {
-        expiresIn: '200h',
 
+        console.log(process.env.JWT_SECRET);
+        const token = jwt.sign({ userId: user._id, userEmail: user.email }, process.env.JWT_SECRET, {
+            expiresIn: '200h',
         });
-    
-        res.status(200).json({ token });
-       
-    } catch (error) {
-            console.log(error)
-        res.status(500).json({ error: 'Login failed' });
-        }
-}
 
+        res.status(200).json({ token });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Login failed' });
+    }
+}
 export const getUser = async (req,res,next) => {
     const { userEmail } = req
+    console.log('hssssssssssssssssss')
     try {
-        
+        console.log(userEmail)
+        console.log('userEmail ===================================')
         const user = await User.findOne({ email: userEmail });
 
         res.status(200).json({user})
- 
+
     } catch (error) {
             console.log(error)
            res.status(500).json({ error: 'Login failed' });
